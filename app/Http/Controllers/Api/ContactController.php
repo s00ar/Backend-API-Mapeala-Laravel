@@ -4,102 +4,81 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
 use App\Models\Contact;
-
 use App\Mail\ContactMailable;
 use Illuminate\Support\Facades\Mail;
+use Validator;
 
 class ContactController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    //Se genera el listado de todos los contactos
     public function index()
     {
+    //acá devuelve la vista
         $contacts = Contact::all();
         return $contacts;
-
-        // return view('contactanos.index');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
+    //nuestra función de almacenaje
     public function store(Request $request)
     {
-        $request->validate([ 
-            'name' => 'required', 
+    //todas nuestras validaciones
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|max:60',
             'email' => 'required|email', 
-            'phone' => 'required', 
-            'message' => 'required', 
-        ]); 
-
+            'phone' => 'required|integer|numeric', 
+            'message' => 'required'
+        ]);
+    //y en caso de que la validacion falle
+        if ($validator->fails()) { 
+		return response()->json(['error'=>$validator->errors()], 401);            
+		}
+        //Guardar el contacto
         $contact = new Contact();
         $contact->name = $request->name;
         $contact->email = $request->email;
         $contact->phone = $request->phone;
         $contact->message = $request->message;
-
         $contact->save();
-
-        // $correo = new ContactMailable($request->all());
-   
-        // Mail::to('c_fad@hotmail.com')->send($correo);
-
-        // return "Mensaje Enviado";
-
-
-
-        /* //  Send mail to admin 
+        //enviar el email
         \Mail::send('contactMail', array( 
             'name' => $contact['name'], 
             'email' => $contact['email'], 
             'phone' => $contact['phone'], 
-            'message' => $contact['message'], 
-        ), function($message) use ($request){ 
-            $message->from($request->email); 
-            $message->to('leston.s.h@gmail.com', 'Admin')->subject($request->get('subject')); 
+            'mensaje' => $contact['message'], 
+        ), function($respuesta) use ($request){ 
+            $respuesta->from($request->email); 
+            $respuesta->to('leston.s.h@gmail.com', 'Admin')->subject($request->get('name'));
         }); 
-
-        return redirect()->back()->with(['success' => 'Formulario enviado correctamente']); */ 
+        //nos retornael contacto
+        return response()->json(['Éxito' => 'Formulario registrado y enviado correctamente']);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
+        //indexa un contacto
         $contact = Contact::find($id);
 
         return $contact;
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
+        //ocupa la función de actualizar un contacto
         $contact = Contact::findOrFail($request->id);
         $contact->name = $request->name;
         $contact->email = $request->email;
         $contact->phone = $request->phone;
         $contact->message = $request->message;
-
         $contact->save();
-
+    //Devuelve el contacto
         return $contact;
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
+    //Elimina un contacto
         $contact = Contact::destroy($id);
-
+    //Muestra el contacto eliminado
         return $contact;
     }
 }
